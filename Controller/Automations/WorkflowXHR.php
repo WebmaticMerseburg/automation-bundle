@@ -4,13 +4,14 @@ namespace Webkul\UVDesk\AutomationBundle\Controller\Automations;
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Webkul\UVDesk\CoreFrameworkBundle\Services\UserService;
 use Webkul\UVDesk\AutomationBundle\EventListener\WorkflowListener;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Webkul\UVDesk\CoreFrameworkBundle\Services\TicketService;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class WorkflowXHR extends Controller
+class WorkflowXHR extends AbstractController
 {
     private $userService;
     private $translator;
@@ -25,7 +26,7 @@ class WorkflowXHR extends Controller
         $this->translator = $translator;
     }
 
-    public function workflowsListXhr(Request $request)
+    public function workflowsListXhr(Request $request, ContainerInterface $container)
     {
         if (!$this->userService->isAccessAuthorized('ROLE_AGENT_MANAGE_WORKFLOW_AUTOMATIC')) {
             return $this->redirect($this->generateUrl('helpdesk_member_dashboard'));
@@ -33,7 +34,7 @@ class WorkflowXHR extends Controller
 
         $json = [];
         $repository = $this->getDoctrine()->getRepository('UVDeskAutomationBundle:Workflow');
-        $json = $repository->getWorkflows($request->query, $this->container);
+        $json = $repository->getWorkflows($request->query, $container);
 
         $response = new Response(json_encode($json));
         $response->headers->set('Content-Type', 'application/json');
@@ -188,11 +189,11 @@ class WorkflowXHR extends Controller
         return new Response(is_array($json) ? json_encode($json) : $json, 200, ['Content-Type' => 'application/json']);
     }
 
-    public function getWorkflowActionOptionsXHR($entity, Request $request)
+    public function getWorkflowActionOptionsXHR($entity, Request $request, ContainerInterface $container)
     {
         foreach ($this->workflowListnerService->getRegisteredWorkflowActions() as $workflowAction) {
             if ($workflowAction->getId() == $entity) {
-                $options = $workflowAction->getOptions($this->container);
+                $options = $workflowAction->getOptions($container);
                 
                 if (!empty($options)) {
                     return new Response(json_encode($options), 200, ['Content-Type' => 'application/json']);
